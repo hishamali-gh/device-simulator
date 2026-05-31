@@ -62,14 +62,17 @@ class DeviceSimulator:
 
         # 1. Define the 'Target' based on Power and Type
 
-        if self.type == 'oven':
-            target_value = 450.0 if self.is_on else 70.0 # If the heater is ON, target is 450. If OFF, target is 70 (room temp).
-
-        elif self.type == 'conveyor':
-            target_value = 0.5 if self.is_on else 0.0
+        if not self.is_on:
+            target_value = 70.0 if self.type == 'oven' else 0.0
 
         else:
-            target_value = 12.0 if self.is_on else 0.0
+            if self.target_value > 0.0:
+                target_value = self.target_value
+
+            else:
+                defaults = {'oven': 400.0, 'conveyor': 0.1, 'pump': 10.0}
+                target_value = defaults.get(self.type, 0.0)
+
 
 
         # 2. Calculate the Difference - How far away are we from the target?
@@ -112,11 +115,14 @@ class DeviceSimulator:
                 try:
                     response = requests.post(self.url, json=payload, timeout=2)
 
-                    if response.status_code == 200:
+                    if response.status_code in [200, 201]:
                         data = response.json()
 
                         if 'command' in data:
                             self._handle_command(data['command'])
+
+                        if 'target_value' in data and data['target_value'] is not None:
+                            self.target_value = data['target_value']
 
                 except requests.exceptions.RequestException as e:
                     print(f"{self.name} Communication Error: {e}")
