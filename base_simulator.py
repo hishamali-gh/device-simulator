@@ -1,3 +1,5 @@
+import os
+
 import requests
 
 import argparse
@@ -24,7 +26,7 @@ def get_args():
 
 class DeviceSimulator:
     def __init__(self, tenant, id, type, name):
-        self.url = f"http://{tenant}.localhost:8000/devices/ingest/"
+        self.tenant = tenant
         self.device_id = id
         self.type = type
         self.name = name
@@ -34,6 +36,17 @@ class DeviceSimulator:
         self.current_value = self._get_initial_value() # We set an initial 'normal' starting value based on what kind of machine this is.
 
         self.target_value = self._get_initial_value()
+
+        # Check if a custom backend URL is provided via environment variables (Docker)
+        env_url = os.environ.get('BACKEND_API_URL')
+
+        if env_url:
+            self.url = env_url
+            self.use_env_url = True
+
+        else:
+            self.url = f"http://{tenant}.localhost:8000/devices/ingest/"
+            self.use_env_url = False
 
 
     def _get_initial_value(self): # The underscore (_) at the beginning denotes Functional Encapsulation (hiding logic).
@@ -105,8 +118,14 @@ class DeviceSimulator:
                     'is_on': self.is_on
                 }
 
+                # Construct headers. If in Docker, send Host header for tenant routing.
+                headers = {}
+
+                if self.use_env_url:
+                    headers["Host"] = f"{self.tenant}.localhost:8000"
+
                 try:
-                    response = requests.post(self.url, json=payload, timeout=2)
+                    response = requests.post(self.url, json=payload, headers=headers, timeout=2)
 
                     if response.status_code in [200, 201]:
                         data = response.json()
