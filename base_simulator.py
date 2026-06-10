@@ -50,8 +50,7 @@ class DeviceSimulator:
             self.is_on = True
 
 
-    def update_state(self, command_payload):
-        # This is called when a message comes from Redis
+    def update_state(self, command_payload): # This is called when a message comes from Redis
 
         self.target_value = command_payload.get('value', self.target_value)
         self.is_on = command_payload.get('is_on', self.is_on)
@@ -59,9 +58,7 @@ class DeviceSimulator:
 
     def simulate_physics(self):
         # Real sensors aren't perfect; they flicker slightly.
-
         # 1. Define the 'Target' based on Power and Type
-
         if not self.is_on:
             target_value = 70.0 if self.type == 'oven' else 0.0
 
@@ -76,22 +73,18 @@ class DeviceSimulator:
 
 
         # 2. Calculate the Difference - How far away are we from the target?
-
         diff = target_value - self.current_value
         
 
         # 3. Apply the 'Time Constant' (k)
-
         k = 0.05 if self.type == 'oven' else 0.5 # Ovens change slowly (k=0.05). Belts change fast (k=0.5).
         
 
         # 4. We only move a small percentage (k) toward the target each heartbeat.
-
         self.current_value += (diff * k)
         
 
         # 5. Add a tiny bit of random noise for the HMI look
-
         noise = random.uniform(-0.1, 0.1)
 
         return round(self.current_value + noise, 2)
