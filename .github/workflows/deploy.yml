@@ -1,0 +1,48 @@
+name: Pizzeria Device Simulator CI/CD Pipeline
+
+# TRIGGER
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # INTEGRATION PART
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Syntax Check
+        run: |
+          python -m py_compile base_simulator.py
+
+  # DEPLOYMENT PART
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and Update/Restart Simulator on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/pizzeria/simulators
+            git pull origin main
+            cd ~/pizzeria
+
+            # Check if the simulator container is active
+            if [ "$(docker ps -q -f name=pizzeria_device_simulator)" ]; then
+              echo "Simulator is running. Rebuilding and restarting container..."
+              docker-compose --profile manual up -d --build simulators
+            else
+              echo "Simulator is not active. Code updated on disk but container left stopped."
+            fi

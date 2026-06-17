@@ -64,7 +64,6 @@ class DeviceSimulator:
 
 
     def update_state(self, command_payload): # This is called when a message comes from Redis
-
         self.target_value = command_payload.get('value', self.target_value)
         self.is_on = command_payload.get('is_on', self.is_on)
 
